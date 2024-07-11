@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <style type="text/css">
+        video {
+            height: 100vh;
+            width: 100vw;
+        }
+        #stopButton{
+          height:30px;
+          width:100px;
+          border-radius: 10px;
+          background-color: red;
+          font-weight: bold;
+          color:white;
+          border:none;
+          position: absolute;
+          left:80%;
+          top:1%;
+        }
+    </style>
+</head>
+<body>
+    <video id="videoElement" autoplay></video>
+    <button id="stopButton" onclick="closeWin()">Stop Camera</button>
+    <script type="text/javascript">
+        const videoElement = document.getElementById('videoElement');
+        let stream;
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function (videoStream) {
+                stream = videoStream;
+                videoElement.srcObject = stream;
+            })
+            .catch(function (err) {
+                console.error('Error accessing the camera:', err);
+            });
+
+        const stopButton = document.getElementById('stopButton');
+        stopButton.addEventListener('click', function () {
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+        });
+        let myWindow;
+
+        function closeWin() {
+          window.history.back();
+        }
+    </script>
+</body>
+</html>
