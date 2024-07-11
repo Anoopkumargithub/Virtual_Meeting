@@ -1,0 +1,1 @@
+pip installimport Flask  Flask-Mail flask_sqlalchemy flask_migrate
