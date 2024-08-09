@@ -43,13 +43,20 @@ correct_otp = str(random.randint(100000, 999999))
 def login():
     return render_template('Login.html')
 
+
+@app.route('/logout')
+def logout():
+    session.pop('name', None)
+    return redirect(url_for('login'))
+
 @app.route('/signup')
 def signup():
     return render_template('signup.html')
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+    return render_template('dashboard.html', name=session['name'])
+    
 
 # # @app.route('/otp')
 # def otp():
@@ -63,6 +70,7 @@ def submit():
     password = request.form.get('password')
     employee = Employee.query.filter_by(email=email, password=password).first()
     if employee:
+        session['name'] = employee.name
         session['email'] = employee.email
         session['password'] = employee.password
         # Redirect to home page
@@ -147,6 +155,23 @@ def verify():
     else:
         flash('Invalid OTP. Please try again.')
         return render_template('otp.html')
+    
+
+@app.route('/meeting')
+def meeting():
+    if 'name' in session:
+        return render_template('meeting.html', name=session['name'])
+    else:
+        return redirect(url_for('login'))
+
+
+@app.route('/join', methods=['GET', 'POST'])
+def join():
+    if request.method=="POST":
+        room_id=request.form.get('room_ID')
+        return redirect(url_for('meeting', roomID=room_id))
+    return render_template('join.html')
+
 
 # def reset_database():
 #     with app.app_context():

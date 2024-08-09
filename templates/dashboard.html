@@ -20,13 +20,13 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Join Meeting</a>
+                    <a class="nav-link" href="{{url_for('join') }}">Join Meeting</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Schedule Meeting</a>
+                    <a class="nav-link" href="{{url_for('meeting') }}">Create Meeting</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Create Meeting</a>
+                    <a class="nav-link" href="{{url_for('logout') }}">Logout</a>
                 </li>
             </ul>
         </div>
@@ -34,7 +34,7 @@
 
     <header class="jumbotron jumbotron-fluid dynamic-background">
         <div class="container text-center">
-            <h1 class="display-4">Welcome to MeetingPlatform</h1>
+            <h1 class="display-4">Welcome {{name}}</h1>
             <p class="lead">Your go-to solution for virtual meetings, collaboration, and more.</p>
         </div>
     </header>
