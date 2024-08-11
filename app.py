@@ -162,7 +162,7 @@ def meeting():
     if 'name' in session:
         return render_template('meeting.html', name=session['name'])
     else:
-        return redirect(url_for('login'))
+        return redirect(url_for('dashboard'))
 
 
 @app.route('/join', methods=['GET', 'POST'])
