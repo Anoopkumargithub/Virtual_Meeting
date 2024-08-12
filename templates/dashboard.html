@@ -23,7 +23,10 @@
                     <a class="nav-link" href="{{url_for('join') }}">Join Meeting</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{url_for('meeting') }}">Create Meeting</a>
+                    <a class="nav-link" href="{{url_for('create_meeting') }}">Create Meeting</a>
+                </li>
+                <li class="nav-link">
+                    <a href="{{url_for('schedule') }}">Scheduled Meetings</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{url_for('logout') }}">Logout</a>
@@ -86,7 +89,7 @@
             <h2>Ready to start?</h2>
             <p>Join, create, or schedule your meeting today.</p>
             <a href="#" class="btn btn-primary">Join a Meeting</a>
-            <a href="#" class="btn btn-secondary">Create/Schedule Meeting</a>
+            <a href="{{url_for('create_meeting')}}" class="btn btn-secondary">Create/Schedule Meeting</a>
         </div>
     </section>
 
