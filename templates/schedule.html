@@ -1,0 +1,11 @@
+<html>
+    <head>
+        <title>Scheduled Meetings</title>
+    </head>
+    <body>
+        <h1>Scheduled Meetings</h1>
+        <ul>{% for meeting in meetings %}
+            <li>{{ meeting.room_name }} - Scheduled at {{ meeting.scheduled_time }}</li>
+        {% endfor %}</ul>
+    </body>
+    </html>

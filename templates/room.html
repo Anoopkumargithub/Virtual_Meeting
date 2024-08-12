@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <title>Room: {}</title>
+    </head>
+    <body>
+        <h1>Room: {}</h1>
+        <video id="localVideo" autoplay muted></video>
+        <video id="remoteVideo" autoplay></video>
+        {}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+        <script>
+            const socket = io();
+            const username = prompt('Enter your name:');
+            socket.emit('join', {username: username});
+
+            socket.on('message', (data) => {{
+                console.log(data);
+            }});
+
+            socket.on('mute', () => {{
+                const localStream = document.getElementById('localVideo').srcObject;
+                localStream.getAudioTracks().forEach(track => track.enabled = false);
+            }});
+
+            socket.on('turn_off_video', () => {{
+                const localStream = document.getElementById('localVideo').srcObject;
+                localStream.getVideoTracks().forEach(track => track.enabled = false);
+            }});
+
+            function muteParticipants() {
+                socket.emit('mute_participants', {});
+            }
+
+            function turnOffVideo() {{
+                socket.emit('turn_off_video', {});
+            }}
+
+            window.onbeforeunload = () => {{
+                socket.emit('leave', {username: username});
+            }};
+        </script>
+    </body>
+    </html>
