@@ -1,44 +1,244 @@
 <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Room: {}</title>
-    </head>
-    <body>
-        <h1>Room: {}</h1>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room: {{ room_name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        #video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            background-color: black;
+            border-radius: 5px;
+        }
+
+        #controls {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+        }
+
+        #controls .control-button {
+            cursor: pointer;
+            font-size: 1.5em;
+        }
+
+        #chat-sidebar {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            background-color: white;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        #chat-input {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+        }
+
+        #chat-input input {
+            flex: 1;
+            padding: 5px;
+            font-size: 1em;
+        }
+
+        #chat-input button {
+            padding: 5px 10px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+
+        #popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 11;
+            display: none;
+        }
+
+        #popup button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="video-grid">
         <video id="localVideo" autoplay muted></video>
-        <video id="remoteVideo" autoplay></video>
-        {}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
-        <script>
-            const socket = io();
-            const username = prompt('Enter your name:');
-            socket.emit('join', {username: username});
+        <!-- Remote videos will be appended here -->
+    </div>
 
-            socket.on('message', (data) => {{
-                console.log(data);
-            }});
+    <div id="controls">
+        <i id="muteButton" class="fas fa-microphone control-button"></i>
+        <i id="videoButton" class="fas fa-video control-button"></i>
+        <i id="chatButton" class="fas fa-comments control-button"></i>
+        <i id="settingsButton" class="fas fa-cog control-button"></i>
+        <i id="leaveButton" class="fas fa-sign-out-alt control-button"></i>
+    </div>
 
-            socket.on('mute', () => {{
-                const localStream = document.getElementById('localVideo').srcObject;
-                localStream.getAudioTracks().forEach(track => track.enabled = false);
-            }});
+    <div id="chat-sidebar">
+        <div id="chat-messages"></div>
+        <div id="chat-input">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button id="sendMessageButton">Send</button>
+        </div>
+    </div>
 
-            socket.on('turn_off_video', () => {{
-                const localStream = document.getElementById('localVideo').srcObject;
-                localStream.getVideoTracks().forEach(track => track.enabled = false);
-            }});
+    <div id="popup">
+        <p>Copy this meeting ID/link to share with participants:</p>
+        <input type="text" id="meetingLink" readonly value="{{ url_for('room', meeting_id=session['meeting_id'], _external=True) }}">
+        <button id="copyLinkButton">Copy</button>
+    </div>
 
-            function muteParticipants() {
-                socket.emit('mute_participants', {});
-            }
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script>
+        const socket = io();
+        const localVideo = document.getElementById('localVideo');
+        const videoGrid = document.getElementById('video-grid');
+        const chatSidebar = document.getElementById('chat-sidebar');
+        const chatButton = document.getElementById('chatButton');
+        const settingsButton = document.getElementById('settingsButton');
+        const leaveButton = document.getElementById('leaveButton');
+        const muteButton = document.getElementById('muteButton');
+        const videoButton = document.getElementById('videoButton');
+        const popup = document.getElementById('popup');
+        const copyLinkButton = document.getElementById('copyLinkButton');
+        let localStream;
+        let isMuted = false;
+        let isVideoOff = false;
 
-            function turnOffVideo() {{
-                socket.emit('turn_off_video', {});
-            }}
+        // Show popup to copy the meeting link
+        popup.style.display = 'block';
 
-            window.onbeforeunload = () => {{
-                socket.emit('leave', {username: username});
-            }};
-        </script>
-    </body>
-    </html>
+        copyLinkButton.onclick = () => {
+            const meetingLink = document.getElementById('meetingLink');
+            meetingLink.select();
+            document.execCommand('copy');
+            alert('Meeting link copied to clipboard!');
+        };
+
+        // Request access to media devices
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+            localStream = stream;
+            localVideo.srcObject = stream;
+
+            // Notify server of joining the room
+            socket.emit('join', { name: '{{ session["name"] }}' });
+
+            // Display local video in the grid
+            videoGrid.appendChild(localVideo);
+
+            // Handle mute/unmute button
+            muteButton.onclick = () => {
+                isMuted = !isMuted;
+                localStream.getAudioTracks()[0].enabled = !isMuted;
+                muteButton.className = isMuted ? 'fas fa-microphone-slash control-button' : 'fas fa-microphone control-button';
+            };
+
+            // Handle video on/off button
+            videoButton.onclick = () => {
+                isVideoOff = !isVideoOff;
+                localStream.getVideoTracks()[0].enabled = !isVideoOff;
+                videoButton.className = isVideoOff ? 'fas fa-video-slash control-button' : 'fas fa-video control-button';
+            };
+
+            // Handle chat sidebar toggle
+            chatButton.onclick = () => {
+                chatSidebar.style.display = chatSidebar.style.display === 'none' ? 'flex' : 'none';
+            };
+
+            // Handle leave button
+            leaveButton.onclick = () => {
+                if (confirm('Are you sure you want to leave the meeting?')) {
+                    socket.emit('leave', { name: '{{ session["name"] }}' });
+                    window.location.href = '/';
+                }
+            };
+
+            // Handle settings button (layout grid settings)
+            settingsButton.onclick = () => {
+                // Logic to change video grid layout can be implemented here
+                alert('Settings button clicked! Implement layout change logic here.');
+            };
+
+            // Handle incoming remote streams
+            socket.on('new-participant', streamId => {
+                const remoteVideo = document.createElement('video');
+                remoteVideo.id = streamId;
+                remoteVideo.autoplay = true;
+                videoGrid.appendChild(remoteVideo);
+
+                socket.on(streamId, stream => {
+                    remoteVideo.srcObject = stream;
+                });
+            });
+
+            // Handle chat messages
+            socket.on('message', data => {
+                const chatMessages = document.getElementById('chat-messages');
+                const messageElement = document.createElement('div');
+                messageElement.textContent = `${data.name}: ${data.message}`;
+                chatMessages.appendChild(messageElement);
+            });
+
+            // Send chat messages
+            document.getElementById('sendMessageButton').onclick = () => {
+                const messageInput = document.getElementById('messageInput');
+                socket.emit('message', { name: '{{ session["name"] }}', message: messageInput.value });
+                messageInput.value = '';
+            };
+
+            // Handle the host ending the meeting
+            socket.on('meeting-ended', () => {
+                alert('The host has ended the meeting.');
+                window.location.href = '/';
+            });
+        }).catch(error => {
+            console.error('Error accessing media devices.', error);
+        });
+
+        // Leave the room when the window is closed
+        window.onbeforeunload = () => {
+            socket.emit('leave', { name: '{{ session["name"] }}' });
+        };
+    </script>
+</body>
+</html>

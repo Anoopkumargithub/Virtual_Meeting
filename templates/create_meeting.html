@@ -1,15 +1,46 @@
 <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Create or Schedule Meeting</title>
-    </head>
-    <body>
-        <h1>Create or Schedule a Meeting</h1>
-        <form action="" method="post">
-            <input type="text" name="room_name" placeholder="Room Name" required><br>
-            <input type="text" name="username" placeholder="Your Name" required><br>
-            <input type="datetime-local" name="scheduled_time" placeholder="Schedule Time (optional)"><br>
-            <button type="submit">Create Meeting</button>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Meeting</title>
+    <style>
+        /* Your existing styles */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Create Meeting</h1>
+        <form action="{{ url_for('create_meeting') }}" method="POST">
+            <div class="form-group">
+                <label for="room_name">Room Name:</label>
+                <input type="text" id="room_name" name="room_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="username">Your Name:</label>
+                <input type="text" id="username" name="username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="schedule_meeting" name="schedule_meeting">
+                <label for="schedule_meeting">Schedule for future</label>
+            </div>
+            <div class="form-group" id="schedule_time_group" style="display: none;">
+                <label for="scheduled_time">Scheduled Time:</label>
+                <input type="datetime-local" id="scheduled_time" name="scheduled_time" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary">Create Meeting</button>
         </form>
-    </body>
-    </html>
+    </div>
+
+    <script>
+        document.getElementById('schedule_meeting').addEventListener('change', function() {
+            const scheduleTimeGroup = document.getElementById('schedule_time_group');
+            if (this.checked) {
+                scheduleTimeGroup.style.display = 'block';
+            } else {
+                scheduleTimeGroup.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
