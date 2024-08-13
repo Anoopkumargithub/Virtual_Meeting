@@ -8,8 +8,4 @@ Jinja2
 MarkupSafe
 Werkzeug
 SQLAlchemy
-<<<<<<< HEAD
 gunicorn
-=======
-gunicorn
->>>>>>> frontend
