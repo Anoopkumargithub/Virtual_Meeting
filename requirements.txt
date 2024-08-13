@@ -3,6 +3,7 @@ Flask-Mail
 Flask-SQLAlchemy
 Flask-Migrate
 email-validator
+Flask_socketio
 itsdangerous
 Jinja2
 MarkupSafe
