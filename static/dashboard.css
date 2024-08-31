@@ -2,6 +2,12 @@ body,
 html {
     scroll-behavior: smooth;
     overflow-x: hidden;
+    background: #f0f0f0; /* Fallback background color */
+    background-image: url('../static/assests/b9.gif'); /* Path to your background image */
+    background-size: cover; /* Ensures the image covers the entire background */
+    background-repeat: no-repeat; /* Prevents the image from repeating */
+    background-attachment: fixed; /* Keeps the image fixed while scrolling */
+    background-position: center center; /* Centers the image */
 }
 
 .fade-in-section {
