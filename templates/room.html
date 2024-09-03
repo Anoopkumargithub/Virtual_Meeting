@@ -102,12 +102,12 @@
 <body>
     <div id="video-grid">
         <video id="localVideo" autoplay muted></video>
-        <!-- Remote videos will be appended here -->
     </div>
 
     <div id="controls">
         <i id="muteButton" class="fas fa-microphone control-button"></i>
         <i id="videoButton" class="fas fa-video control-button"></i>
+        <i id="shareScreenButton" class="fas fa-desktop control-button"></i>
         <i id="chatButton" class="fas fa-comments control-button"></i>
         <i id="settingsButton" class="fas fa-cog control-button"></i>
         <i id="leaveButton" class="fas fa-sign-out-alt control-button"></i>
@@ -135,7 +135,6 @@
         const videoGrid = document.getElementById('video-grid');
         const chatSidebar = document.getElementById('chat-sidebar');
         const chatButton = document.getElementById('chatButton');
-        const settingsButton = document.getElementById('settingsButton');
         const leaveButton = document.getElementById('leaveButton');
         const muteButton = document.getElementById('muteButton');
         const videoButton = document.getElementById('videoButton');
@@ -148,6 +147,7 @@
         // Show popup to copy the meeting link
         popup.style.display = 'block';
 
+        // Copy meeting link
         copyLinkButton.onclick = () => {
             const meetingLink = document.getElementById('meetingLink');
             meetingLink.select();
@@ -155,90 +155,111 @@
             alert('Meeting link copied to clipboard!');
         };
 
-        // Request access to media devices
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
-            localStream = stream;
-            localVideo.srcObject = stream;
+        // Initialize Media Devices
+        async function initMediaDevices() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localStream = stream;
+                localVideo.srcObject = stream;
 
-            // Notify server of joining the room
-            socket.emit('join', { name: '{{ session["name"] }}' });
+                // Send stream to server
+                socket.emit('join', { name: '{{ session["name"] }}', stream: localStream });
+            } catch (error) {
+                console.error('Error accessing media devices:', error);
+            }
+        }
 
-            // Display local video in the grid
-            videoGrid.appendChild(localVideo);
+        // Handle participants' video streams
+        function handleNewParticipant(participantId, stream) {
+            const videoElement = document.createElement('video');
+            videoElement.id = participantId;
+            videoElement.srcObject = stream;
+            videoElement.autoplay = true;
+            videoGrid.appendChild(videoElement);
+        }
 
-            // Handle mute/unmute button
+        // Handle screen sharing
+        async function handleScreenShare() {
+            try {
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                socket.emit('share-screen', screenStream);
+
+                // Handle when screen share stops
+                screenStream.getTracks()[0].onended = () => {
+                    alert('Screen sharing ended.');
+                    socket.emit('screen-share-ended');
+                };
+            } catch (error) {
+                console.error('Error sharing screen:', error);
+            }
+        }
+
+        // Chat functionality
+        function sendMessage(message) {
+            socket.emit('chat-message', { message });
+        }
+
+        // Event Listeners for UI Controls
+        function initUIListeners() {
             muteButton.onclick = () => {
                 isMuted = !isMuted;
                 localStream.getAudioTracks()[0].enabled = !isMuted;
                 muteButton.className = isMuted ? 'fas fa-microphone-slash control-button' : 'fas fa-microphone control-button';
             };
 
-            // Handle video on/off button
             videoButton.onclick = () => {
                 isVideoOff = !isVideoOff;
                 localStream.getVideoTracks()[0].enabled = !isVideoOff;
                 videoButton.className = isVideoOff ? 'fas fa-video-slash control-button' : 'fas fa-video control-button';
             };
 
-            // Handle chat sidebar toggle
             chatButton.onclick = () => {
                 chatSidebar.style.display = chatSidebar.style.display === 'none' ? 'flex' : 'none';
             };
 
-            // Handle leave button
             leaveButton.onclick = () => {
                 if (confirm('Are you sure you want to leave the meeting?')) {
-                    socket.emit('leave', { name: '{{ session["name"] }}' });
-                    window.location.href = '/';
+                    socket.emit('leave');
+                    window.location.href = '/dashboard';
                 }
             };
 
-            // Handle settings button (layout grid settings)
-            settingsButton.onclick = () => {
-                // Logic to change video grid layout can be implemented here
-                alert('Settings button clicked! Implement layout change logic here.');
+            document.getElementById('sendMessageButton').onclick = () => {
+                const message = document.getElementById('messageInput').value;
+                sendMessage(message);
             };
 
-            // Handle incoming remote streams
-            socket.on('new-participant', streamId => {
-                const remoteVideo = document.createElement('video');
-                remoteVideo.id = streamId;
-                remoteVideo.autoplay = true;
-                videoGrid.appendChild(remoteVideo);
+            document.getElementById('shareScreenButton').onclick = handleScreenShare;
+        }
 
-                socket.on(streamId, stream => {
-                    remoteVideo.srcObject = stream;
-                });
+        // Socket.IO Event Handling
+        function initSocketEvents() {
+            socket.on('new-participant', (participantId, stream) => {
+                handleNewParticipant(participantId, stream);
             });
 
-            // Handle chat messages
-            socket.on('message', data => {
+            socket.on('chat-message', data => {
                 const chatMessages = document.getElementById('chat-messages');
                 const messageElement = document.createElement('div');
                 messageElement.textContent = `${data.name}: ${data.message}`;
                 chatMessages.appendChild(messageElement);
             });
 
-            // Send chat messages
-            document.getElementById('sendMessageButton').onclick = () => {
-                const messageInput = document.getElementById('messageInput');
-                socket.emit('message', { name: '{{ session["name"] }}', message: messageInput.value });
-                messageInput.value = '';
-            };
-
-            // Handle the host ending the meeting
             socket.on('meeting-ended', () => {
-                alert('The host has ended the meeting.');
+                alert('Host has ended the meeting.');
                 window.location.href = '/';
             });
-        }).catch(error => {
-            console.error('Error accessing media devices.', error);
-        });
+        }
 
-        // Leave the room when the window is closed
-        window.onbeforeunload = () => {
-            socket.emit('leave', { name: '{{ session["name"] }}' });
-        };
+        // Initialize the meeting room
+        function initRoom() {
+            initMediaDevices();
+            initUIListeners();
+            initSocketEvents();
+        }
+
+        // Start everything
+        window.onload = initRoom;
     </script>
 </body>
 </html>

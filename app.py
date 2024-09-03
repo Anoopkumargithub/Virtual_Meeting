@@ -157,14 +157,14 @@ def verify():
 def create_meeting():
     if request.method == 'POST':
         room_name = request.form['room_name']
-        name = request.form['username']
+        user = request.form['username']
         schedule_meeting = 'schedule_meeting' in request.form
         scheduled_time = request.form.get('scheduled_time')
 
-        user = Employee.query.filter_by(name=name).first()
-        if not user:
-            flash("User does not exist. Please sign up first.")
-            return redirect(url_for('signup'))
+        # user = Employee.query.filter_by(name=name).first()
+        # if not user:
+        #     flash("User does not exist. Please sign up first.")
+        #     return redirect(url_for('signup'))
 
         # Generate a unique meeting ID
         meeting_id = str(random.randint(100000, 999999))
@@ -174,7 +174,8 @@ def create_meeting():
         if schedule_meeting and scheduled_time:
             scheduled_time = scheduled_time.replace('T', ' ')
             meeting.scheduled_time = datetime.strptime(scheduled_time, '%Y-%m-%d %H:%M')
-            meeting.is_active = False  # Set the meeting as inactive until the scheduled time
+            meeting.is_active = False  
+            # Set the meeting as inactive until the scheduled time
 
         db.session.add(meeting)
         db.session.commit()
@@ -199,7 +200,12 @@ def room(meeting_id):
     session['room'] = meeting.room_name
     session['meeting_id'] = meeting_id
     session['is_host'] = meeting.host.name == session.get('name')
-    return render_template('room.html', room_name=meeting.room_name)
+
+    # Additional setup for screen sharing and media management
+    screen_sharing = session.get('screen_sharing', False)
+    media_streams = session.get('media_streams', {})
+
+    return render_template('room.html', room_name=meeting.room_name, screen_sharing=screen_sharing, media_streams=media_streams)
 
 @app.route('/schedule')
 def schedule():
@@ -236,6 +242,21 @@ def handle_mute(data):
 def handle_turn_off_video(data):
     if session.get('is_host'):
         emit('turn_off_video', broadcast=True)
+
+@socketio.on('start_screen_share')
+def handle_start_screen_share(data):
+    room = session.get('room')
+    if session.get('is_host'):
+        emit('start_screen_share', data, to=room, broadcast=True)
+
+@socketio.on('stop_screen_share')
+def handle_stop_screen_share(data):
+    room = session.get('room')
+    if session.get('is_host'):
+        emit('stop_screen_share', data, to=room, broadcast=True)
+
+
+
 
 @app.route('/join', methods=['GET', 'POST'])
 def join():
