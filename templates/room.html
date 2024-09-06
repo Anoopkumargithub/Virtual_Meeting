@@ -3,390 +3,403 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room: {{ room_name }}</title>
+    <title>Room</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         body {
-            margin: 0;
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            display: flex;
+            margin: 0;
+            padding: 0;
             height: 100vh;
+            background-color: #f4f4f4;
+            display: flex;
             flex-direction: column;
+            justify-content: space-between;
         }
 
-        #video-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
+        #main-container {
+            display: flex;
             flex: 1;
-            padding: 10px;
-            overflow-y: auto;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        #video-container {
+            flex: 3;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            background-color: #e0e0e0;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
         }
 
         video {
-            width: 100%;
-            height: auto;
+            width: 280px;
+            height: 180px;
             background-color: black;
-            border-radius: 5px;
+            border-radius: 8px;
         }
 
-        #controls {
+        #controls-container {
             display: flex;
-            justify-content: space-around;
-            padding: 10px;
+            justify-content: center;
+            align-items: center;
             background-color: #333;
+            padding: 10px 0;
             color: white;
         }
 
-        #controls .control-button {
+        .control-button {
+            font-size: 24px;
+            margin: 0 20px;
             cursor: pointer;
-            font-size: 1.5em;
         }
 
-        #chat-sidebar {
-            position: fixed;
-            right: 0;
-            top: 0;
-            width: 300px;
-            height: 100%;
-            background-color: white;
-            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
-            display: none;
-            flex-direction: column;
-            z-index: 10;
+        .control-button:hover {
+            color: #1abc9c;
         }
 
-        #chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
+        #deviceSelection {
+            margin-bottom: 10px;
+            text-align: center;
         }
 
-        #chat-input {
-            display: flex;
-            padding: 10px;
-            border-top: 1px solid #ccc;
+        #deviceSelection label {
+            margin-right: 10px;
+            font-weight: bold;
         }
 
-        #chat-input input {
-            flex: 1;
+        #deviceSelection select {
             padding: 5px;
-            font-size: 1em;
+            font-size: 16px;
+            margin-right: 20px;
         }
 
-        #chat-input button {
-            padding: 5px 10px;
-            margin-left: 5px;
-            cursor: pointer;
+        #chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            overflow: hidden;
         }
 
-        #popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 11;
-            display: none;
+        #chatMessages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background-color: #fafafa;
         }
 
-        #popup button {
-            padding: 5px 10px;
-            cursor: pointer;
+        #chatInput {
+            width: calc(100% - 20px);
+            padding: 15px;
+            border: none;
+            border-top: 1px solid #ccc;
+            outline: none;
         }
     </style>
 </head>
 <body>
+    <!-- Video and Chat container -->
+    <div id="main-container">
+        <!-- Video Grid Section -->
+        <div id="video-container">
+            <video id="localVideo" autoplay muted></video>
+        <div id="remoteVideos"></div>
+        </div>
 
-    <div id="popup">
-        <p>Copy this meeting ID/link to share with participants:</p>
-        <input type="text" id="meetingLink" readonly value="{{ url_for('room', meeting_id=session['meeting_id'], _external=True) }}">
-        <button id="copyLinkButton">Copy</button>
-    </div>
-
-    <div id="video-grid">
-        <video id="localVideo" autoplay muted></video>
-    </div>
-
-    <div id="chat-sidebar">
-        <div id="chat-messages"></div>
-        <div id="chat-input">
-            <input type="text" id="messageInput" placeholder="Type a message...">
-            <button id="sendMessageButton">Send</button>
+        <!-- Chat Section -->
+        <div id="chat-container">
+            <i id="closeChatButton" class="fas fa-times"></i>
+            <div id="chatMessages"></div>
+            <input type="text" id="chatInput" placeholder="Type a message...">
         </div>
     </div>
 
-
-    <div id="controls">
+    <!-- Controls Section -->
+    <div id="controls-container">
         <i id="muteButton" class="fas fa-microphone control-button"></i>
         <i id="videoButton" class="fas fa-video control-button"></i>
         <i id="shareScreenButton" class="fas fa-desktop control-button"></i>
         <i id="chatButton" class="fas fa-comments control-button"></i>
-        <i id="settingsButton" class="fas fa-cog control-button"></i>
-        <i id="whiteboardButton" class="fas fa-chalkboard control-button"></i>
         <i id="leaveButton" class="fas fa-sign-out-alt control-button"></i>
-        <canvas id="whiteboard" style="display:none; border:1px solid #ffffff;"></canvas> 
     </div>
-    
-    
+    <!-- Device Selection Dropdowns -->
+    <div id="deviceSelection">
+        <label for="cameraSelect">Camera:</label>
+        <select id="cameraSelect"></select>
+        <label for="micSelect">Microphone:</label>
+        <select id="micSelect"></select>
+    </div>
 
-    
+    <!-- <div id="video-grid">
+        <video id="localVideo" autoplay muted></video>
+        <div id="remoteVideos"></div>
+    </div> -->
 
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script> -->
-    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <!-- <div id="controls">
+        <i id="muteButton" class="fas fa-microphone control-button"></i>
+        <i id="videoButton" class="fas fa-video control-button"></i>
+        <i id="shareScreenButton" class="fas fa-desktop control-button"></i>
+    </div>
 
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <div id="deviceSelection">
+        <label for="cameraSelect">Camera:</label>
+        <select id="cameraSelect"></select>
+        <label for="micSelect">Microphone:</label>
+        <select id="micSelect"></select>
+    </div> -->
+
+    <!-- <div id="chat">
+        <div id="chatMessages"></div>
+        <input type="text" id="chatInput" placeholder="Type a message...">
+    </div> -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
-        const socket = io();
-        const localVideo = document.getElementById('localVideo');
-        const videoGrid = document.getElementById('video-grid');
-        const chatSidebar = document.getElementById('chat-sidebar');
-        const chatButton = document.getElementById('chatButton');
-        const leaveButton = document.getElementById('leaveButton');
-        const muteButton = document.getElementById('muteButton');
-        const videoButton = document.getElementById('videoButton');
-        const whiteboardButton = document.getElementById('whiteboardButton');
-        const popup = document.getElementById('popup');
-        const copyLinkButton = document.getElementById('copyLinkButton');
-        const chatMessages = document.getElementById('chat-messages');
-        const chatInput = document.getElementById('chat-input');
-        const sendMessageButton = document.getElementById('sendMessageButton');
-        const screenStream = document.getElementById('shareScreenButton');
-        let localStream;
-        let peerConnections = {};
-        let isMuted = false;
-        let isVideoOff = false;
+    const socket = io();
 
-        // Show popup to copy the meeting link
-        popup.style.display = 'block';
+    const remoteVideos = document.getElementById('remoteVideos');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const cameraSelect = document.getElementById('cameraSelect');
+    const micSelect = document.getElementById('micSelect');
+    const leaveButton = document.getElementById('leaveButton');
 
-        // Copy meeting link
-        copyLinkButton.onclick = () => {
-            const meetingLink = document.getElementById('meetingLink');
-            meetingLink.select();
-            document.execCommand('copy');
-            // alert('Meeting link copied to clipboard!');
+    // Get the user's name from the session
+    const username = "{{ session.get('name') }}";
+
+    // Function to add a new remote video stream
+    function addRemoteVideoStream(stream, participantId) {
+        let videoElement = document.getElementById(`remoteVideo_${participantId}`);
+        if (!videoElement) {
+            videoElement = document.createElement('video');
+            videoElement.id = `remoteVideo_${participantId}`;
+            videoElement.autoplay = true;
+            remoteVideos.appendChild(videoElement);
+        }
+        videoElement.srcObject = stream;
+        console.log(`Added remote video stream for participant ${participantId}`);
+    }
+
+    // Example usage with WebRTC
+    const peerConnections = {}; // Store peer connections
+
+    socket.on('connect', () => {
+        console.log('Connected to signaling server');
+        socket.emit('join', { username: username, room: 'room1' });
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Disconnected from signaling server');
+    });
+
+    socket.on('offer', async (data) => {
+        console.log('Received offer:', data);
+        const peerConnection = new RTCPeerConnection();
+        peerConnections[data.participantId] = peerConnection;
+
+        peerConnection.ontrack = (event) => {
+            console.log(`Received remote track from participant ${data.participantId}`);
+            addRemoteVideoStream(event.streams[0], data.participantId);
         };
 
-        // Initialize Media Devices
-        async function initMediaDevices() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                localVideo.srcObject = localStream;
-                socket.emit('join', { name: '{{ session["name"] }}' });
-            } catch (error) {
-                console.error('Error accessing media devices:', error);
-            }
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        socket.emit('answer', {
+            type: 'answer',
+            answer: answer,
+            participantId: data.participantId,
+            room: 'room1'
+        });
+    });
+
+    socket.on('answer', async (data) => {
+        console.log('Received answer:', data);
+        if (peerConnections[data.participantId].signalingState === 'have-local-offer') {
+            await peerConnections[data.participantId].setRemoteDescription(new RTCSessionDescription(data.answer));
         }
+    });
 
-        socket.on('ready', (data) => {
-            const peerConnection = createPeerConnection(data.participant_id);
-            peerConnection.addStream(localStream);
-            peerConnection.createOffer()
-                .then(offer => peerConnection.setLocalDescription(offer))
-                .then(() => {
-                    socket.emit('offer', {
-                        type: 'offer',
-                        sdp: peerConnection.localDescription,
-                        target: data.participant_id
-                    });
+    socket.on('candidate', async (data) => {
+        console.log('Received candidate:', data);
+        if (data.candidate) {
+            await peerConnections[data.participantId].addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+    });
+
+    socket.on('message', (data) => {
+        console.log('Received message:', data);
+        const messageElement = document.createElement('div');
+        messageElement.textContent = `${data.participantId}: ${data.msg}`;
+        chatMessages.appendChild(messageElement);
+    });
+
+    // Function to start a call (example)
+    async function startCall(participantId) {
+        const peerConnection = new RTCPeerConnection();
+        peerConnections[participantId] = peerConnection;
+
+        // Get local stream and add to peer connection
+        const localStream = await getMediaStream();
+        document.getElementById('localVideo').srcObject = localStream;
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        peerConnection.ontrack = (event) => {
+            console.log(`Received remote track from participant ${participantId}`);
+            addRemoteVideoStream(event.streams[0], participantId);
+        };
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        socket.emit('offer', {
+            type: 'offer',
+            offer: offer,
+            participantId: participantId,
+            room: 'room1'
+        });
+
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                socket.emit('candidate', {
+                    type: 'candidate',
+                    candidate: event.candidate,
+                    participantId: participantId,
+                    room: 'room1'
                 });
-        });
-
-        socket.on('offer', (data) => {
-            const peerConnection = createPeerConnection(data.from);
-            peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp))
-                .then(() => peerConnection.addStream(localStream))
-                .then(() => peerConnection.createAnswer())
-                .then(answer => peerConnection.setLocalDescription(answer))
-                .then(() => {
-                    socket.emit('answer', {
-                        type: 'answer',
-                        sdp: peerConnection.localDescription,
-                        target: data.from
-                    });
-                });
-        });
-
-        socket.on('answer', (data) => {
-            const peerConnection = peerConnections[data.from];
-            peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-        });
-
-        socket.on('ice-candidate', (data) => {
-            const candidate = new RTCIceCandidate(data.candidate);
-            const peerConnection = peerConnections[data.from];
-            peerConnection.addIceCandidate(candidate);
-        });
-
-        socket.on('new-participant', (data) => {
-            // Handle new participant
-        });
-
-        socket.on('participant-left', (data) => {
-            const videoElement = document.getElementById(data.participant_id);
-            if (videoElement) {
-                videoElement.remove();
             }
-            delete peerConnections[data.participant_id];
-        });
+        };
+    }
 
-        function createPeerConnection(participantId) {
-            const peerConnection = new RTCPeerConnection({
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    // Example: Start a call with a participant
+    startCall('participant1');
+
+    // Handle chat input
+    chatInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            const message = chatInput.value;
+            socket.emit('message', {
+                type: 'chat',
+                message: message,
+                participantId: username,
+                room: 'room1'
             });
-
-            peerConnections[participantId] = peerConnection;
-
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                    socket.emit('ice-candidate', {
-                        target: participantId,
-                        candidate: event.candidate
-                    });
-                }
-            };
-
-            peerConnection.ontrack = (event) => {
-                const videoElement = document.createElement('video');
-                videoElement.id = participantId;
-                videoElement.srcObject = event.streams[0];
-                videoElement.autoplay = true;
-                videoGrid.appendChild(videoElement);
-            };
-
-            return peerConnection;
+            chatInput.value = '';
         }
+    });
 
+    // Handle mute button
+    document.getElementById('muteButton').addEventListener('click', () => {
+        const localStream = document.getElementById('localVideo').srcObject;
+        localStream.getAudioTracks().forEach(track => track.enabled = !track.enabled);
+    });
 
-        // Handle participants' video streams
-        // function handleNewParticipant(participantId, stream) {
-        //     const videoElement = document.createElement('video');
-        //     videoElement.id = participantId;
-        //     videoElement.srcObject = stream;
-        //     videoElement.autoplay = true;
-        //     videoGrid.appendChild(videoElement);
-        // }
+    // Handle video button
+    document.getElementById('videoButton').addEventListener('click', () => {
+        const localStream = document.getElementById('localVideo').srcObject;
+        localStream.getVideoTracks().forEach(track => track.enabled = !track.enabled);
+    });
 
-        // Whiteboard functionality
-        const whiteboard = document.getElementById('whiteboard');
-        // const whiteboardButton = document.getElementById('whiteboardButton');
-        let isDrawing = false;
-        let context = whiteboard.getContext('2d');
+    // Handle screen sharing
+    document.getElementById('shareScreenButton').addEventListener('click', async () => {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const localStream = document.getElementById('localVideo').srcObject;
+        localStream.getVideoTracks()[0].stop();
+        localStream.addTrack(screenStream.getVideoTracks()[0]);
+        document.getElementById('localVideo').srcObject = localStream;
+    });
 
-        whiteboard.width = window.innerWidth;
-        whiteboard.height = window.innerHeight;
+    // Handle window unload
+    window.addEventListener('beforeunload', () => {
+        socket.emit('leave', {
+            type: 'leave',
+            participantId: username,
+            room: 'room1'
+        });
+    });
 
-        // Event listeners for whiteboard drawing
-        whiteboard.addEventListener('mousedown', startDrawing);
-        whiteboard.addEventListener('mouseup', stopDrawing);
-        whiteboard.addEventListener('mousemove', draw);
+     // Handle leave button
+     leaveButton.addEventListener('click', () => {
+        socket.emit('leave', {
+            type: 'leave',
+            participantId: username,
+            room: 'room1'
+        });
+        window.location.href = '/dashboard'; // Redirect to home or login page
+    });
 
-        whiteboardButton.onclick = () => {
-            whiteboard.style.display = whiteboard.style.display === 'none' ? 'block' : 'none';
+    // List available media devices
+    async function listMediaDevices() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        const audioDevices = devices.filter(device => device.kind === 'audioinput');
+
+        videoDevices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `Camera ${cameraSelect.length + 1}`;
+            cameraSelect.appendChild(option);
+        });
+
+        audioDevices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `Microphone ${micSelect.length + 1}`;
+            micSelect.appendChild(option);
+        });
+    }
+
+    // Get media stream with selected devices
+    async function getMediaStream() {
+        const videoSource = cameraSelect.value;
+        const audioSource = micSelect.value;
+
+        const constraints = {
+            video: { deviceId: videoSource ? { exact: videoSource } : undefined },
+            audio: { deviceId: audioSource ? { exact: audioSource } : undefined }
         };
 
-        // Start drawing
-        function startDrawing(e) {
-            isDrawing = true;
-            draw(e);
-        }
+        return await navigator.mediaDevices.getUserMedia(constraints);
+    }
 
-        // Stop drawing
-        function stopDrawing() {
-            isDrawing = false;
-            context.beginPath();
-        }
-
-        // Drawing function
-        function draw(e) {
-            if (!isDrawing) return;
-            context.lineWidth = 5;
-            context.lineCap = 'round';
-            context.strokeStyle = 'black';
-
-            context.lineTo(e.clientX, e.clientY);
-            context.stroke();
-            context.beginPath();
-            context.moveTo(e.clientX, e.clientY);
-
-            // Emit drawing data to the server
-            socket.emit('draw', { x: e.clientX, y: e.clientY });
-        }
-
-        // Listen for drawing events from other participants
-        socket.on('draw', (data) => {
-            context.lineTo(data.x, data.y);
-            context.stroke();
-            context.beginPath();
-            context.moveTo(data.x, data.y);
+    // Handle device change
+    cameraSelect.addEventListener('change', async () => {
+        const localStream = await getMediaStream();
+        document.getElementById('localVideo').srcObject = localStream;
+        // Update peer connections with new stream
+        Object.values(peerConnections).forEach(peerConnection => {
+            peerConnection.getSenders().forEach(sender => {
+                if (sender.track.kind === 'video') {
+                    sender.replaceTrack(localStream.getVideoTracks()[0]);
+                }
+            });
         });
+    });
 
-        // Handle screen sharing
-        async function handleScreenShare() {
-            try {
-                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                socket.emit('share-screen', screenStream);
-
-                // Handle when screen share stops
-                screenStream.getTracks()[0].onended = () => {
-                    alert('Screen sharing ended.');
-                    socket.emit('screen-share-ended');
-                };
-            } catch (error) {
-                console.error('Error sharing screen:', error);
-            }
-        }
-
-        // Chat functionality
-        function sendMessage(message) {
-            socket.emit('chat-message', { message });
-        }
-
-        // Event Listeners for UI Controls
-        function initUIListeners() {
-            muteButton.onclick = () => {
-                isMuted = !isMuted;
-                localStream.getAudioTracks()[0].enabled = !isMuted;
-                muteButton.className = isMuted ? 'fas fa-microphone-slash control-button' : 'fas fa-microphone control-button';
-            };
-
-            videoButton.onclick = () => {
-                isVideoOff = !isVideoOff;
-                localStream.getVideoTracks()[0].enabled = !isVideoOff;
-                videoButton.className = isVideoOff ? 'fas fa-video-slash control-button' : 'fas fa-video control-button';
-            };
-
-            chatButton.onclick = () => {
-                chatSidebar.style.display = chatSidebar.style.display === 'none' ? 'flex' : 'none';
-            };
-
-            leaveButton.onclick = () => {
-                socket.emit('leave');
-                window.location.href = '/dashboard';
-            };
-
-            document.getElementById('sendMessageButton').onclick = () => {
-                const message = document.getElementById('messageInput').value;
-                sendMessage(message);
-                document.getElementById('messageInput').value = '';
-            };
-        }
-
-        // Handle new participant joining
-        socket.on('new-participant', (data) => {
-            console.log('New participant joined:', data.participant_id);
-            // You can now handle the new participant's video stream
+    micSelect.addEventListener('change', async () => {
+        const localStream = await getMediaStream();
+        document.getElementById('localVideo').srcObject = localStream;
+        // Update peer connections with new stream
+        Object.values(peerConnections).forEach(peerConnection => {
+            peerConnection.getSenders().forEach(sender => {
+                if (sender.track.kind === 'audio') {
+                    sender.replaceTrack(localStream.getAudioTracks()[0]);
+                }
+            });
         });
+    });
 
-        // Initialize the UI listeners
-        initUIListeners();
-
-        // Initialize media devices and join the room
-        initMediaDevices();
+    // Initialize media devices
+    listMediaDevices();
     </script>
 </body>
 </html>

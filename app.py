@@ -81,8 +81,7 @@ def submit():
         session['name'] = employee.name
         session['email'] = employee.email
         session['password'] = employee.password
-        # Redirect to home page
-        # return 'Logged in successfully!'
+        
         msg_title = "OTP Verification"
         sender ='noreply@app.com'
 
@@ -144,9 +143,7 @@ def signup2():
 
 @app.route('/verify', methods=['POST'])
 def verify():
-    # Simulate OTP verification logic
     entered_otp = request.form.get('otp')
-     # This should be dynamically generated and sent to the user
 
     if entered_otp == correct_otp:
         return redirect(url_for('dashboard'))
@@ -160,7 +157,6 @@ def generate_meeting_id(size=6):
 @app.route('/create')
 def create():
     return render_template('create_meeting.html')
-
 
 
 @app.route('/create_meeting', methods=['POST'])
@@ -180,13 +176,30 @@ def create_meeting():
     except Exception as e:
         return jsonify({'message': 'Failed to create meeting', 'error': str(e)}), 500
 
+
 @app.route('/room/<meeting_id>')
 def room(meeting_id):
     try:
+        if 'name' not in session:
+            return redirect(url_for('login'))
         meeting = Meeting.query.filter_by(meeting_id=meeting_id).first_or_404()
-        return render_template('room.html', room_name=meeting.room_name)
+        return render_template('room.html', room_name=meeting.room_name, meeting_id=meeting_id)
     except Exception as e:
         return jsonify({'message': 'Failed to load room', 'error': str(e)}), 500
+
+    
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    # Handle chat message
+    message = data.get('message')
+    participant_id = data.get('participant_id')
+    meeting_id = data.get('meeting_id')
+
+    # Broadcast the message to other participants
+    emit('chat-message', {'message': message, 'participant_id': participant_id}, room=meeting_id)
+    
+    return jsonify(success=True)
 
 @app.route('/join')
 def join():
@@ -203,25 +216,35 @@ def schedule_meeting():
 @socketio.on('join')
 def handle_join(data):
     try:
-        name = data['name']
-        emit('new-participant', {'participant_id': request.sid}, broadcast=True)
-        emit('ready', {'participant_id': request.sid}, room=request.sid)
+        # name = data['name']
+        # emit('new-participant', {'participant_id': request.sid}, broadcast=True)
+        # emit('ready', {'participant_id': request.sid}, room=request.sid)
+        username = session.get('name')
+        room = data['room']
+        join_room(room)
+        emit('message', {'participantId': username, 'msg': f"{username} has joined the room."}, room=room)
     except Exception as e:
         print(f"Error in handle_join: {str(e)}")
 
-@socketio.on('chat-message')
-def handle_chat_message(data):
-    try:
-        emit('chat-message', data, broadcast=True)
-    except Exception as e:
-        print(f"Error in handle_chat_message: {str(e)}")
+@socketio.on('message')
+def handle_message(data):
+    room = data['room']
+    emit('message', {'participantId': data['participantId'], 'msg': data['message']}, room=room)
+# @socketio.on('chat-message')
+# def handle_chat_message(data):
+#     try:
+#         room = data['room']
+#         emit('message', data, room=room)
+#         # emit('chat-message', data, broadcast=True)
+#     except Exception as e:
+#         print(f"Error in handle_chat_message: {str(e)}")
 
-@socketio.on('draw')
-def handle_draw(data):
-    try:
-        emit('draw', data, broadcast=True)
-    except Exception as e:
-        print(f"Error in handle_draw: {str(e)}")
+# @socketio.on('draw')
+# def handle_draw(data):
+#     try:
+#         emit('draw', data, broadcast=True)
+#     except Exception as e:
+#         print(f"Error in handle_draw: {str(e)}")
 
 @socketio.on('share-screen')
 def handle_share_screen(stream):
@@ -240,200 +263,66 @@ def handle_screen_share_ended():
 @socketio.on('offer')
 def handle_offer(data):
     try:
-        emit('offer', data, room=data['target'])
+        room = data['room']
+        emit('offer', data, to=room)
+        # emit('offer', data, room=data['target'])
     except Exception as e:
         print(f"Error in handle_offer: {str(e)}")
 
 @socketio.on('answer')
 def handle_answer(data):
     try:
-        emit('answer', data, room=data['target'])
+        room = data['room']
+        emit('answer', data, to=room)
+        # emit('answer', data, room=data['target'])
     except Exception as e:
         print(f"Error in handle_answer: {str(e)}")
 
 @socketio.on('ice-candidate')
 def handle_ice_candidate(data):
     try:
-        emit('ice-candidate', data, room=data['target'])
+        room = data['room']
+        emit('candidate', data, to=room)
+        # emit('ice-candidate', data, room=data['target'])
     except Exception as e:
         print(f"Error in handle_ice_candidate: {str(e)}")
 
-@socketio.on('mute-participants')
-def handle_mute_participants():
-    try:
-        emit('mute-participants', broadcast=True)
-    except Exception as e:
-        print(f"Error in handle_mute_participants: {str(e)}")
+# @socketio.on('mute-participants')
+# def handle_mute_participants():
+#     try:
+#         emit('mute-participants', broadcast=True)
+#     except Exception as e:
+#         print(f"Error in handle_mute_participants: {str(e)}")
 
-@socketio.on('turn-off-video')
-def handle_turn_off_video():
-    try:
-        emit('turn-off-video', broadcast=True)
-    except Exception as e:
-        print(f"Error in handle_turn_off_video: {str(e)}")
+# @socketio.on('turn-off-video')
+# def handle_turn_off_video():
+#     try:
+#         emit('turn-off-video', broadcast=True)
+#     except Exception as e:
+#         print(f"Error in handle_turn_off_video: {str(e)}")
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    try:
-        emit('participant-left', {'participant_id': request.sid}, broadcast=True)
-    except Exception as e:
-        print(f"Error in handle_disconnect: {str(e)}")
+# @socketio.on('disconnect')
+# def handle_disconnect():
+#     try:
+#         emit('participant-left', {'participant_id': request.sid}, broadcast=True)
+#     except Exception as e:
+#         print(f"Error in handle_disconnect: {str(e)}")
 
 
 
 
 
 @socketio.on('leave')
-def handle_leave():
+def handle_leave(data):
     try:
-        emit('participant-left', {'participant_id': request.sid}, broadcast=True)
+        username = session.get('name')
+        room = data['room']
+        leave_room(room)
+        emit('message', {'participantId': username, 'msg': f"{username} has left the room."}, room=room)
+        # emit('participant-left', {'participant_id': request.sid}, broadcast=True)
     except Exception as e:
         print(f"Error in handle_leave: {str(e)}")
 
-# if __name__ == '__main__':
-#     socketio.run(app, debug=True, host='0.0.0.0', port=8000)
 if __name__ == '__main__':
     socketio.run(app, debug=True,port=8000)
     
-# def generate_meeting_id():
-#     """Generate a unique meeting ID."""
-#     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))  # Change: Function to generate unique meeting ID
-
-
-# @app.route('/create', methods=['GET', 'POST'])
-# def create_meeting():
-#     if request.method == 'POST':
-#         room_name = request.form['room_name']
-#         user = request.form['username']
-#         schedule_meeting = 'schedule_meeting' in request.form
-#         scheduled_time = request.form.get('scheduled_time')
-
-#         # user = Employee.query.filter_by(name=name).first()
-#         # if not user:
-#         #     flash("User does not exist. Please sign up first.")
-#         #     return redirect(url_for('signup'))
-
-#         # Generate a unique meeting ID
-#         meeting_id = str(random.randint(100000, 999999))
-
-#         meeting = Meeting(meeting_id=meeting_id, room_name=room_name, host=user, is_active=not schedule_meeting)
-
-#         if schedule_meeting and scheduled_time:
-#             scheduled_time = scheduled_time.replace('T', ' ')
-#             meeting.scheduled_time = datetime.strptime(scheduled_time, '%Y-%m-%d %H:%M')
-#             meeting.is_active = False  
-#             # Set the meeting as inactive until the scheduled time
-
-#         db.session.add(meeting)
-#         db.session.commit()
-
-#         meeting_link = url_for('room', meeting_id=meeting_id, _external=True)
-#         flash(f"Meeting created successfully! Share this link with participants: {meeting_link}")
-
-#         if schedule_meeting:
-#             return redirect(url_for('schedule'))
-#         else:
-#             return redirect(url_for('room', meeting_id=meeting_id))
-#     return render_template('create_meeting.html')
-
-
-
-# @app.route('/room/<meeting_id>')
-# def room(meeting_id):
-#     meeting = Meeting.query.filter_by(meeting_id=meeting_id).first()
-#     if not meeting or not meeting.is_active:
-#         return "Meeting is not active or does not exist."
-
-#     session['room'] = meeting.room_name
-#     session['meeting_id'] = meeting_id
-#     session['is_host'] = meeting.host.name == session.get('name')
-
-#     # Additional setup for screen sharing and media management
-#     screen_sharing = session.get('screen_sharing', False)
-#     media_streams = session.get('media_streams', {})
-
-#     return render_template('room.html', room_name=meeting.room_name, screen_sharing=screen_sharing, media_streams=media_streams)
-
-# @app.route('/schedule')
-# def schedule():
-#     meetings = Meeting.query.filter(Meeting.scheduled_time.isnot(None)).all()
-#     return render_template('schedule.html', meetings=meetings)
-
-
-# # SocketIO event handlers
-# @socketio.on('join')
-# def handle_join(data):
-#     room = session.get('room')
-#     join_room(room)
-#     if session.get('is_host'):
-#         send(f"{data['name']} has joined the room.", to=room)
-
-# @socketio.on('leave')
-# def handle_leave(data):
-#     room = session.get('room')
-#     leave_room(room)
-#     if session.get('is_host'):
-#         send(f"{data['name']} has left the room.", to=room)
-
-# @socketio.on('message')
-# def handle_message(data):
-#     room = session.get('room')
-#     send(data['message'], to=room)
-
-# @socketio.on('mute_participants')
-# def handle_mute(data):
-#     if session.get('is_host'):
-#         emit('mute', broadcast=True)
-
-# @socketio.on('turn_off_video')
-# def handle_turn_off_video(data):
-#     if session.get('is_host'):
-#         emit('turn_off_video', broadcast=True)
-
-# @socketio.on('draw')  # NEW: Handle drawing events
-# def handle_draw(data):
-#     room = session.get('room')
-#     emit('draw', data, room=room)
-
-# @socketio.on('start_screen_share')
-# def handle_start_screen_share(data):
-#     room = session.get('room')
-#     if session.get('is_host'):
-#         emit('start_screen_share', data, to=room, broadcast=True)
-
-# @socketio.on('stop_screen_share')
-# def handle_stop_screen_share(data):
-#     room = session.get('room')
-#     if session.get('is_host'):
-#         emit('stop_screen_share', data, to=room, broadcast=True)
-
-
-
-
-# @app.route('/join', methods=['GET', 'POST'])
-# def join():
-#     if request.method == "POST":
-#         meeting_id = request.form.get('meeting_ID')
-#         return redirect(url_for('room', meeting_id=meeting_id))
-#     return render_template('join.html')
-
-# @socketio.on('offer')
-# def handle_offer(data):
-#     emit('offer', data, broadcast=True)
-
-# @socketio.on('answer')
-# def handle_answer(data):
-#     emit('answer', data, broadcast=True)
-
-# @socketio.on('ice-candidate')
-# def handle_ice_candidate(data):
-#     emit('ice-candidate', data, broadcast=True)
-
-
-# def reset_database():
-#     with app.app_context():
-#         db.drop_all()  # Delete all tables
-#         db.create_all()  # Recreate the tables
-
-# if __name__ == '__main__':
-#     socketio.run(app, debug=True, host='0.0.0.0', port=8000)
