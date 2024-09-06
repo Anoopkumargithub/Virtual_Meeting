@@ -103,6 +103,54 @@
             border-top: 1px solid #ccc;
             outline: none;
         }
+        #popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 1000;
+            width: 300px;
+            text-align: center;
+        }
+
+        #popup p {
+            margin-bottom: 10px;
+        }
+
+        #popup input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #popup button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background-color: #1abc9c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #popup button:hover {
+            background-color: #16a085;
+        }
+
+        #popup .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -138,6 +186,13 @@
         <select id="micSelect"></select>
     </div>
 
+    <div id="popup">
+        <span class="close" id="closePopup">&times;</span>
+        <p>Copy this meeting ID/link to share with participants:</p>
+        <input type="text" id="meetingLink" readonly value="{{ url_for('room', meeting_id=meeting_id, _external=True) }}">
+        <button id="copyLinkButton">Copy</button>
+    </div>
+
     <!-- <div id="video-grid">
         <video id="localVideo" autoplay muted></video>
         <div id="remoteVideos"></div>
@@ -168,12 +223,52 @@
     const remoteVideos = document.getElementById('remoteVideos');
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
+    const chatContainer = document.getElementById('chat-container');
+    const closeChatButton = document.getElementById('closeChatButton');
+    const chatButton = document.getElementById('chatButton');
     const cameraSelect = document.getElementById('cameraSelect');
     const micSelect = document.getElementById('micSelect');
     const leaveButton = document.getElementById('leaveButton');
 
     // Get the user's name from the session
     const username = "{{ session.get('name') }}";
+
+    function openPopup() {
+            document.getElementById('popup').style.display = 'block';
+        }
+
+        // Close popup
+        document.getElementById('closePopup').addEventListener('click', function() {
+            document.getElementById('popup').style.display = 'none';
+        });
+
+        // Copy meeting link to clipboard
+        document.getElementById('copyLinkButton').addEventListener('click', function() {
+            const meetingLinkInput = document.getElementById('meetingLink');
+            meetingLinkInput.select();
+            document.execCommand('copy');
+            alert('Meeting link copied to clipboard!');
+        });
+
+        // Simulate opening the popup when the meeting starts
+        openPopup(); // You can call this at the right event when the meeting starts
+
+        // Function to hide the chat container
+closeChatButton.addEventListener('click', () => {
+    chatContainer.style.display = 'none'; // Hide chat container
+    chatButton.style.color = '#fff';      // Reset the chat button color
+});
+
+// Function to show the chat container when the chat button is clicked
+chatButton.addEventListener('click', () => {
+    if (chatContainer.style.display === 'none' || chatContainer.style.display === '') {
+        chatContainer.style.display = 'flex'; // Show chat container
+        chatButton.style.color = '#1abc9c';   // Highlight the chat button
+    } else {
+        chatContainer.style.display = 'none'; // Hide chat container again
+        chatButton.style.color = '#fff';      // Reset the chat button color
+    }
+});
 
     // Function to add a new remote video stream
     function addRemoteVideoStream(stream, participantId) {
