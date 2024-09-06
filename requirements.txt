@@ -10,3 +10,4 @@ MarkupSafe
 Werkzeug
 SQLAlchemy
 gunicorn
+Flask_socketio
